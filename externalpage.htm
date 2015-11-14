@@ -1,0 +1,306 @@
+<html>
+	<!--
+	 
+     HTML backend to support segmentaton of images 
+	 Uses "Canvas 2D" only (works on the latest IE, firefox, opera, safari browsers
+	 
+     Author : Subhransu Maji
+     Email me at : smaji at cs dot berkeley dot edu 
+     
+	 -->
+	
+	<title>AMT : Keypoint Annotation</title>
+	<head>
+		<style type="text/css">
+		.xlink {cursor:default}
+		.hlink{cursor:help}
+		</style>
+		<!--[if IE]><script type="text/javascript" src="excanvas.js"></script><![endif]-->
+		<script type="text/javascript">
+			
+			var keypoint_labels = ['  1,  2,  3,  4,  5,  6,  7,  8,  9,  10'];
+			
+			var CANVAS_WIDTH = 630;
+			var CANVAS_HEIGHT= 450;
+			
+			//global variables for the page
+			var img;
+			var canvas_fix;
+			var ctx;
+			var image_name; 
+			var dir_name;
+			var category_name;
+			var category_index=-1;
+			var config_url;
+			
+			//variables for placing the text
+			var TEXT_X_LOCATION = 150;
+			var TEXT_Y_OFFSET	= 10;
+			var TEXT_Y_STEP		= 20;
+			
+			//var base_url = 'http://www.cs.berkeley.edu/~smaji/mturk/segmentation';
+			var base_url = ".";
+			
+			//keypoints 
+			var x = new Array();
+			var y = new Array();
+			var kpnames = new Array();
+
+			//current location
+			var cx=0;
+			var cy=0;
+			
+			var numpts=0;
+			
+			//tolerance radius
+			var tr=10;
+			
+			//drawing styles
+			var linewidth = 4.0;
+			var pt_size   = 4.0;
+			var font_style = "10pt Arial";
+			
+			// closed or open polygon
+			var polygon_is_closed = false;
+			
+			// index of the point selected
+			var selected_idx = -1;
+			
+			// top level initialization of the canvas
+			function init_canvas(){
+				img = new Image();
+				var img_name = get_image_name();
+				// tokenize the category and image name based on comma
+				var tokens = img_name.split(',');
+				image_name    = tokens[0];
+				img.src = base_url + '/images/' + image_name;
+				
+				canvas_fix = document.getElementById("keypoint_canvas");
+				ctx = canvas_fix.getContext("2d");
+				ctx.font = font_style;
+				canvas_fix.onmousemove = mousemove_canvas;
+				canvas_fix.onmousedown = mousedown_canvas;
+				canvas_fix.onmouseup   = mouseup_canvas;
+				img.onload = draw_image;
+				init_keypoints();
+				draw_canvas();
+				draw_keypoints();
+			}
+			function init_keypoints(){
+				//set the names of keypoints
+				kpnames = keypoint_labels[0].split(',');
+
+				// initialize default coordinates
+				for(var i = 0; i < kpnames.length;i++){
+					x[i] = CANVAS_WIDTH - TEXT_X_LOCATION;
+					y[i] = TEXT_Y_OFFSET + i*TEXT_Y_STEP;
+				}
+			
+			}
+		
+			// draw canvas
+			function draw_canvas(){
+				//draw the image
+				ctx.clearRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+				draw_image();				
+			}
+			
+			// fix this - wait to draw the image (see if this really works)
+			function draw_image(){
+				ctx.drawImage(img,0,0,CANVAS_WIDTH, CANVAS_HEIGHT);
+				draw_keypoints();
+				if(document.getElementById('submitButton').disabled)
+					drawDisabledWarning();
+
+			}
+			function drawDisabledWarning(){
+				//outer circle
+				ctx.strokeStyle = 'red';
+				ctx.beginPath();
+				ctx.moveTo(0,0);
+				ctx.lineTo(CANVAS_WIDTH,CANVAS_HEIGHT);
+				
+				ctx.moveTo(0,CANVAS_HEIGHT);
+				ctx.lineTo(CANVAS_WIDTH,0);
+				
+				ctx.stroke();
+				ctx.textAlign = 'center';
+				ctx.fillText("!!! WARNING !!! Unaccepted HIT !!!", CANVAS_WIDTH/2,CANVAS_HEIGHT/2);	
+			}
+			function draw_keypoints(){
+				ctx.textAlign = 'left';
+				
+				for(var i = 0; i < kpnames.length; i++){
+					ctx.fillStyle = 'red';
+					//inner circle
+					ctx.beginPath();
+					ctx.arc(x[i],y[i],pt_size, 0, Math.PI*2, true);
+					ctx.closePath();
+					ctx.fill();
+					
+					//outer circle
+					ctx.strokeStyle = 'red';
+					ctx.beginPath();
+					ctx.arc(x[i],y[i],2*pt_size, 0, Math.PI*2, true);
+					ctx.closePath();
+					ctx.stroke();
+					
+					//text 
+					ctx.fillText(kpnames[i], x[i]+pt_size, y[i]+pt_size);
+				}
+			}
+			
+			// returns the index of the point close to the current one (within tr)
+			function get_closest_point_idx(){
+				var idx = -1;
+				var min_dist = 100000000;
+				for(var i=0;i<kpnames.length;i++){
+					var d2 = (cx-x[i])*(cx-x[i]) + (cy-y[i])*(cy-y[i]);
+					if(d2 < min_dist){
+						min_dist = d2;
+						idx = i;
+					}
+				}
+				if(min_dist < tr*tr)
+					return idx;
+				else
+					return -1;
+			}
+				// GUI input handling
+			function grab_xy(event){
+				var ev = event || window.event;
+				
+				var IE = document.all?true:false;
+				if (IE) { // grab the x-y pos if browser is IE
+					cx = ev.clientX + document.body.scrollLeft;
+					cy = ev.clientY + document.body.scrollTop;
+				}
+				else {  // grab the x-y pos if browser is NS
+					cx = ev.pageX;
+					cy = ev.pageY;
+				}  
+				cx = cx - canvas_fix.offsetLeft;
+				cy = cy - canvas_fix.offsetTop;
+				if (cx < 0){cx = 0;}
+				if (cy < 0){cy = 0;}
+				if (cx > CANVAS_WIDTH) {cx = CANVAS_WIDTH};
+				if (cy > CANVAS_HEIGHT){cy = CANVAS_HEIGHT};
+				  
+				return [cx,cy];
+			}
+			function mouseup_canvas(event){
+				selected_idx = -1;
+			}
+			function mousedown_canvas(event){
+				selected_idx = get_closest_point_idx();
+			}
+			//update the current location of the keypoint
+			function mousemove_canvas(event){
+				var xy = grab_xy(event);
+				cx = xy[0];
+				cy = xy[1];
+				if(selected_idx >= 0){
+					x[selected_idx] = cx;
+					y[selected_idx] = cy;
+				}
+				draw_canvas();
+			}
+			//keys to reset the annotation
+			function keydown(event) {
+				var key = String.fromCharCode(event.keyCode || event.which);
+				switch (key) {
+						case "R":
+						init_keypoints();
+						break;
+				}
+				draw_canvas();
+			}
+			/// functions related to AMT task
+			function gup(name){
+				var regexS = "[\\?&]"+name+"=([^&#]*)";
+				var regex = new RegExp( regexS );
+				var tmpURL = window.location.href;
+				var results = regex.exec( tmpURL );
+				if( results == null )
+					return "";
+				else
+					return results[1];
+			}
+			//
+			// This method decodes the query parameters that were URL-encoded
+			//
+			function decode(strToDecode)
+			{
+				var encoded = strToDecode;
+				return unescape(encoded.replace(/\+/g,  " "));
+			}
+			// what to submit to AMT server
+			function get_results_string(){
+				var result = dir_name + "," + category_name + "," + image_name;
+				for(var i=0;i<kpnames.length;i++){
+					result +=  "," + x[i] + "," + y[i];
+				}
+				return result;
+			}
+			// grab the results and submit to the server
+			function submitResults(){
+				var results = get_results_string();
+				document.getElementById('keypoints').value = results;
+				document.forms["mturk_form"].submit();
+				//alert(results);
+			}
+			
+			function get_image_name(){
+				return gup('image');
+			}
+			function get_category_name(){
+				var img_name = gup('directory-category-image');
+				var tokens = img_name.split(',');
+				return tokens[1];
+			}
+				
+	</script>
+	</head>
+	<body onload="init_canvas();" onkeydown="keydown(event)">
+	<script type="text/javascript">
+		document.write('<div align=center><h3 style="color:green">Left and right are corresponding images of the same scene. Mark the corresponding keypoints of the left image on the right image.</h3></div>');
+		document.write('<div align=center style="font-size:15px"> If the image or the names of keypoints does not display, your browser may not support this interface.</font></div>'); 
+		document.write('<div align=center style="font-size:15px"> Try the latest Chrome, Safari or Firefox browsers.</font></div><br>'); 
+		document.write('<div style="text-align:center;" class="xlink"><canvas id="keypoint_canvas" width=630 height=450></canvas></div>');
+	</script>
+	<div align=center>
+		<table width=420> 
+			<tr align=center><td>
+				<form id="mturk_form" method="POST" action="http://www.mturk.com/mturk/externalSubmit">
+					<input type="hidden" id="assignmentId" name="assignmentId" value="">
+					<input type="hidden" id="keypoints" name="results" value="">
+					<br>
+					<input id="submitButton" type="button" name="Submit Results" value="Submit Results" onClick="submitResults()">
+				</form>
+			</td></tr>
+		</table>
+	</div>
+		
+	<script type="text/javascript">
+		document.getElementById('assignmentId').value = gup('assignmentId');
+		//
+		// Check if the worker is PREVIEWING the HIT or if they've ACCEPTED the HIT
+		//
+		if (gup('assignmentId') == "ASSIGNMENT_ID_NOT_AVAILABLE")
+		{
+			// If we're previewing, disable the button and give it a helpful message
+			document.getElementById('submitButton').disabled = true;
+			document.getElementById('submitButton').value = "You must ACCEPT the HIT before you can submit the results.";
+		} else {
+			var form = document.getElementById('mturk_form');
+			if (document.referrer && ( document.referrer.indexOf('workersandbox') != -1) ) {
+				form.action = "http://workersandbox.mturk.com/mturk/externalSubmit";
+			}
+		}
+	</script>
+	
+	
+	</body>
+</html>
+
+
