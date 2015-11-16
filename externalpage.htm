@@ -34,8 +34,8 @@
 			var config_url;
 			
 			//variables for placing the text
-			var TEXT_X_LOCATION = 150;
-			var TEXT_Y_OFFSET	= 10;
+			var TEXT_X_LOCATION = 40;
+			var TEXT_Y_OFFSET	= 30;
 			var TEXT_Y_STEP		= 20;
 			
 			//var base_url = 'http://www.cs.berkeley.edu/~smaji/mturk/segmentation';
@@ -73,6 +73,7 @@
 				// tokenize the category and image name based on comma
 				var tokens = img_name.split(',');
 				image_name    = tokens[0];
+				//alert(tokens);
 				img.src = base_url + '/images/' + image_name;
 				
 				canvas_fix = document.getElementById("keypoint_canvas");
@@ -81,10 +82,21 @@
 				canvas_fix.onmousemove = mousemove_canvas;
 				canvas_fix.onmousedown = mousedown_canvas;
 				canvas_fix.onmouseup   = mouseup_canvas;
-				img.onload = draw_image;
-				init_keypoints();
-				draw_canvas();
-				draw_keypoints();
+				//img.onload = draw_image;
+				img.addEventListener('load', function() {
+				  // once the image is loaded:
+				  var width = img.naturalWidth; // this will be 300
+				  var height = img.naturalHeight; // this will be 400
+				  ctx.drawImage(img, 0, 0, width, height);
+				  CANVAS_WIDTH = width;
+				  CANVAS_HEIGHT = height;
+				  init_keypoints();
+				  draw_canvas();
+                                  draw_keypoints();
+				}, false);
+//				init_keypoints();
+//				draw_canvas();
+//				draw_keypoints();
 			}
 			function init_keypoints(){
 				//set the names of keypoints
@@ -107,7 +119,11 @@
 			
 			// fix this - wait to draw the image (see if this really works)
 			function draw_image(){
-				ctx.drawImage(img,0,0,CANVAS_WIDTH, CANVAS_HEIGHT);
+				var width = img.naturalWidth; // this will be 300
+			        var height = img.naturalHeight; // this will be 400
+				CANVAS_WIDTH = width;
+				CANVAS_HEIGHT = height;
+				ctx.drawImage(img,0,0,width,height);
 				draw_keypoints();
 				if(document.getElementById('submitButton').disabled)
 					drawDisabledWarning();
@@ -236,7 +252,7 @@
 			}
 			// what to submit to AMT server
 			function get_results_string(){
-				var result = dir_name + "," + category_name + "," + image_name;
+				var result = image_name;
 				for(var i=0;i<kpnames.length;i++){
 					result +=  "," + x[i] + "," + y[i];
 				}
@@ -247,7 +263,6 @@
 				var results = get_results_string();
 				document.getElementById('keypoints').value = results;
 				document.forms["mturk_form"].submit();
-				//alert(results);
 			}
 			
 			function get_image_name(){
@@ -266,12 +281,12 @@
 		document.write('<div align=center><h3 style="color:green">Left and right are corresponding images of the same scene. Mark the corresponding keypoints of the left image on the right image.</h3></div>');
 		document.write('<div align=center style="font-size:15px"> If the image or the names of keypoints does not display, your browser may not support this interface.</font></div>'); 
 		document.write('<div align=center style="font-size:15px"> Try the latest Chrome, Safari or Firefox browsers.</font></div><br>'); 
-		document.write('<div style="text-align:center;" class="xlink"><canvas id="keypoint_canvas" width=630 height=450></canvas></div>');
+		document.write('<div style="text-align:center;" class="xlink"><canvas id="keypoint_canvas" width=1216 height=474></canvas></div>');
 	</script>
 	<div align=center>
 		<table width=420> 
 			<tr align=center><td>
-				<form id="mturk_form" method="POST" action="http://www.mturk.com/mturk/externalSubmit">
+				<form id="mturk_form" method="POST" action="https://www.mturk.com/mturk/externalSubmit">
 					<input type="hidden" id="assignmentId" name="assignmentId" value="">
 					<input type="hidden" id="keypoints" name="results" value="">
 					<br>
@@ -294,7 +309,7 @@
 		} else {
 			var form = document.getElementById('mturk_form');
 			if (document.referrer && ( document.referrer.indexOf('workersandbox') != -1) ) {
-				form.action = "http://workersandbox.mturk.com/mturk/externalSubmit";
+				form.action = "https://workersandbox.mturk.com/mturk/externalSubmit";
 			}
 		}
 	</script>
