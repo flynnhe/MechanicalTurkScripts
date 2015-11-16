@@ -3,6 +3,6 @@
 used to perform the merging of variables into template files.  You can learn more about Velocity's capabilities at http://velocity.apache.org.
 -->
 <ExternalQuestion xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">
-    <ExternalURL>https://s3-us-west-2.amazonaws.com/realdtest/externalpage.htm?image=${image}</ExternalURL>
+    <ExternalURL>https://helenflynn.com/externalpage.htm?image=${image}</ExternalURL>
     <FrameHeight>600</FrameHeight>
 </ExternalQuestion>
