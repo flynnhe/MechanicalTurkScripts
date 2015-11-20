@@ -15,8 +15,8 @@
 
 cd ../../bin
 
-cat='aeroplane'
-label=../samples/image-segmentation/amt/$cat
+cat='annotation'
+label=../samples/external_hit/amt/$cat
 successfile=$label.success
 outputfile=$label.results
 ./getResults.sh $1 $2 $3 $4 $5 $6 $7 $8 $9 -successfile $successfile -outputfile $outputfile -sandbox

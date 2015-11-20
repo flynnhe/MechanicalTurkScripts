@@ -13,13 +13,13 @@
 # License for the specific language governing permissions and
 # limitations under the License.
 
-name='infrared'
+name='annotation'
 current_dir='../samples/external_hit';
 label=$current_dir/amt/$name 
 input=$current_dir/amt/$name.input
 question=$current_dir/amt/$name.question
 properties=$current_dir/amt/$name.properties
 cd ../../bin
-./loadHITs.sh -label $label -input $input -question $question -properties $properties -sandbox -maxhits 1
+./loadHITs.sh -label $label -input $input -question $question -properties $properties -sandbox -maxhits 2
 
 
